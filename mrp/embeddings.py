@@ -1,4 +1,4 @@
-"""Sentence embeddings via sentence-transformers (all-MiniLM-L6-v2 by default)."""
+"""Sentence embeddings via fastembed (ONNX-based, low-memory all-MiniLM-L6-v2)."""
 import numpy as np
 from mrp.config import EMBEDDING_MODEL_NAME, EMBEDDING_DIM
 
@@ -8,9 +8,10 @@ _model = None
 def _get_model():
     global _model
     if _model is None:
-        from sentence_transformers import SentenceTransformer
+        from fastembed import TextEmbedding
+
         print(f"  Loading embedding model '{EMBEDDING_MODEL_NAME}' …")
-        _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        _model = TextEmbedding(model_name=EMBEDDING_MODEL_NAME)
         print("  ✓ model loaded")
     return _model
 
@@ -21,7 +22,8 @@ def embed(text):
         return np.zeros(EMBEDDING_DIM, dtype=np.float32)
     try:
         model = _get_model()
-        vec = model.encode(text, show_progress_bar=False, normalize_embeddings=True)
+        # fastembed returns a generator; next() fetches the first embedding
+        vec = next(model.embed([text]))
         return vec.astype(np.float32)
     except Exception as exc:
         print(f"  ⚠ embedding failed ({exc}), using zero vector")

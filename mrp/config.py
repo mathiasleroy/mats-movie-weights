@@ -39,7 +39,7 @@ IMDB_DATASETS = {
 }
 
 # ── Embeddings ─────────────────────────────────────────────────────────────
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
 # PCA_COMPONENTS = 64
 # PCA_COMPONENTS = 120 # +0.1602
