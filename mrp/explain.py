@@ -81,10 +81,19 @@ def explain(model, builder, vec):
             })
 
     # insert grouped factors (with a hint of the dominant member)
+    # also collect top individual members per group for detailed output
+    members = {label: [] for _, label in _GROUPS}
+    for name, val in zip(builder.feature_names_, contribs):
+        val = float(val)
+        for prefix, label in _GROUPS:
+            if name.startswith(prefix):
+                members[label].append((name.split("__", 1)[1], val))
+                break
+    for label in members:
+        members[label].sort(key=lambda t: abs(t[1]), reverse=True)
+
     for _, label in _GROUPS:
         total = groups[label]
-        if abs(total) < 1e-6:
-            continue
         detail_name, detail_val = top_names.get(label, (None, 0.0))
         display = label
         if detail_name and abs(detail_val) > 0.01 and label != "Plot vibe":
@@ -93,6 +102,10 @@ def explain(model, builder, vec):
             "name": display,
             "value": None,
             "contribution": total,
+            "members": [
+                {"name": n, "contribution": round(v, 4)}
+                for n, v in members[label][:3] if abs(v) > 1e-6
+            ],
         })
 
     factors.sort(key=lambda f: abs(f["contribution"]), reverse=True)
@@ -112,6 +125,17 @@ def explain(model, builder, vec):
             mae = json.load(f).get("cv_mae_mean")
     except Exception:
         pass
+
+    # sanitize: NaN/Inf (e.g. missing runtime) are not valid JSON
+    def _clean_num(v):
+        if v is None:
+            return None
+        v = float(v)
+        return round(v, 4) if np.isfinite(v) else None
+
+    for f in factors:
+        f["value"] = _clean_num(f.get("value"))
+        f["contribution"] = _clean_num(f["contribution"])
 
     return {
         "base": round(base, 3),
@@ -136,6 +160,9 @@ def format_explanation(exp):
         lines.append("⚠ No plot text found — prediction based on metadata only.")
     lines.append("\n--- FACTOR BREAKDOWN ---")
     for f in exp["factors"][:12]:
-        val = f" ({f['value']:g})" if f["value"] is not None else ""
+        val = f" ({f['value']:g})" if f.get("value") is not None else ""
         lines.append(f"  {f['contribution']:+.3f} pts  |  {f['name']}{val}")
+        # show top individual members of grouped factors
+        for m in f.get("members", [])[:3]:
+            lines.append(f"      {m['contribution']:+.3f}     └ {m['name']}")
     return "\n".join(lines)
