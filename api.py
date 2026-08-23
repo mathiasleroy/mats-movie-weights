@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mrp.predict import predict
+# from mrp import embeddings
 
 app = FastAPI(title="Movie Rating Predictor")
 
@@ -12,14 +13,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# @app.on_event("startup")
+# def preload_models():
+#     """Load the embedding model into RAM before the first request arrives."""
+#     print("Preloading embedding model...")
+#     embeddings._get_model()
+#     print("✓ API is ready and fast!")
+
 @app.get("/predict")
-def predict_movie(imdb_id: str):
+def predict_movie(imdb_id: str, explain: bool = False):
     """
     Returns the predicted rating for a given IMDb ID.
-    The model loads into RAM on the first request (takes ~5s), 
+    Add &explain=1 to include a factor breakdown of the prediction.
+    The model loads into RAM on the first request (takes ~5s),
     then is instant for all subsequent requests.
     """
-    result = predict(imdb_id)
+    result = predict(imdb_id, explain_result=explain)
     if result:
         return result
     return {"error": "Could not generate prediction"}

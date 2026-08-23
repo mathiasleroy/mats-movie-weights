@@ -58,9 +58,10 @@ def resolve_title(query, year=None):
     return imdb.search_title(query, year), None
 
 
-def predict(query, year=None):
+def predict(query, year=None, explain_result=False):
     """
     Predict personal rating (1–10) for a movie.
+    If explain_result is True, includes a factor breakdown in the result.
     """
     # 1. Resolve to IMDb ID
     imdb_id, prefetched_omdb = resolve_title(query, year)
@@ -83,7 +84,7 @@ def predict(query, year=None):
     pred = model.predict(vec.reshape(1, -1))[0]
     pred = float(np.clip(pred, 1.0, 10.0))
 
-    return {
+    result = {
         "imdb_id": imdb_id,
         "title": features.get("title", ""),
         "year": features.get("year"),
@@ -92,6 +93,18 @@ def predict(query, year=None):
         "genres": features.get("genres", []),
         "directors": features.get("directors", []),
     }
+
+    if explain_result:
+        from mrp.explain import explain
+        exp = explain(model, builder, vec)
+        result["explanation"] = {
+            "base": exp["base"],
+            "factors": exp["factors"],
+            "plot_available": exp["plot_available"],
+            "mae": exp["mae"],
+        }
+
+    return result
 
 
 if __name__ == "__main__":
