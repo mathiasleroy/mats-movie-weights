@@ -1,16 +1,75 @@
-"""OMDb API client — fetches plot text + structured metadata with rate-limit tracking."""
+"""OMDb API client — fetches plot text + structured metadata.
+
+Uses a round-robin over all configured API keys: when a request fails
+with an exhausted/invalid-key signal (HTTP 401 or "limit reached" in the
+response body), the next key is tried automatically. No call counting.
+"""
 import requests
-from mrp.config import OMDB_API_KEYS, OMDB_URL, OMDB_DAILY_LIMIT
+from mrp.config import OMDB_API_KEYS, OMDB_URL
 from mrp.cache import get_cache
 
+# Module-level cursor: index of the key currently in use.
+_key_idx = None
 
-def _get_available_key():
-    """Find the first API key that hasn't hit the daily limit."""
-    cache = get_cache()
-    for i, key in enumerate(OMDB_API_KEYS):
-        if cache.get_omdb_count_today(i) < OMDB_DAILY_LIMIT:
-            return i, key
-    return None, None
+
+def _current_key():
+    """Return (index, api_key) for the active key, loading the persisted cursor once."""
+    global _key_idx
+    if _key_idx is None:
+        cache = get_cache()
+        stored = cache.get_setting("omdb_key_idx")
+        _key_idx = int(stored) % len(OMDB_API_KEYS) if stored is not None else 0
+    return _key_idx, OMDB_API_KEYS[_key_idx]
+
+
+def _rotate_key():
+    """Advance to the next key. Returns False if we wrapped around to the start."""
+    global _key_idx
+    start = _key_idx if _key_idx is not None else 0
+    _key_idx = (_key_idx + 1) % len(OMDB_API_KEYS)
+    get_cache().set_setting("omdb_key_idx", str(_key_idx))
+    return _key_idx != start
+
+
+def _is_limit_error(status_code, data):
+    """Detect exhausted/invalid-key responses that warrant rotating keys."""
+    if status_code == 401:
+        return True
+    err = (data or {}).get("Error", "")
+    return "limit" in err.lower()
+
+
+def _request(params):
+    """Perform one OMDb request, rotating through keys on limit errors.
+
+    Returns parsed JSON dict, or None if every key failed.
+    """
+    if not OMDB_API_KEYS:
+        return None
+
+    while True:
+        _, api_key = _current_key()
+        try:
+            resp = requests.get(OMDB_URL, params={**params, "apikey": api_key},
+                                timeout=15)
+        except requests.RequestException as exc:
+            print(f"  OMDb request error: {exc}")
+            return None
+
+        data = None
+        if resp.status_code == 200:
+            try:
+                data = resp.json()
+            except ValueError:
+                pass
+
+        if not _is_limit_error(resp.status_code, data):
+            return data
+
+        # Key exhausted/invalid -> silently switch to the next one.
+        if not _rotate_key():
+            print("  ⚠ OMDb daily limit reached for ALL keys")
+            return None
 
 
 def _parse_response(data):
@@ -25,68 +84,38 @@ def _parse_response(data):
         "genres": _split(data.get("Genre")),
         "directors": _split(data.get("Director")),
         "cast": _split(data.get("Actors")),
+        "writers": _split(data.get("Writer")),
         "imdb_rating": _safe_float(data.get("imdbRating")),
         "imdb_votes": _safe_int(data.get("imdbVotes")),
         "plot": data.get("Plot", "") if data.get("Plot") not in ("", "N/A") else "",
+        # ── enrichment fields (same API call, no extra cost) ──
+        "metascore": _safe_int(data.get("Metascore")),
+        "rated": data.get("Rated") if data.get("Rated") not in ("", "N/A", None) else None,
+        "languages": _split(data.get("Language")),
+        "countries": _split(data.get("Country")),
+        "awards_wins": _parse_awards(data.get("Awards"), "win"),
+        "awards_nominations": _parse_awards(data.get("Awards"), "nomination"),
+        "box_office": _parse_money(data.get("BoxOffice")),
     }
 
 
 def fetch(imdb_id):
-    if not OMDB_API_KEYS:
-        return None
-
-    cache = get_cache()
-    key_idx, api_key = _get_available_key()
-    if api_key is None:
-        print(f"  ⚠ OMDb daily limit reached for ALL keys")
-        return None
-
-    cache.increment_omdb_count(key_idx, 1)
-
-    try:
-        resp = requests.get(
-            OMDB_URL,
-            params={"i": imdb_id, "apikey": api_key, "plot": "full"},
-            timeout=15,
-        )
-    except requests.RequestException as exc:
-        print(f"  OMDb request error for {imdb_id}: {exc}")
-        return None
-
-    if resp.status_code != 200:
-        print(f"  OMDb HTTP {resp.status_code} for {imdb_id}")
-        return None
-
-    return _parse_response(resp.json())
+    data = _request({"i": imdb_id, "plot": "full"})
+    return _parse_response(data)
 
 
 def search_by_title(title, year=None):
     """Use OMDb's ?t= endpoint. Returns (imdb_id, parsed_data) to save API calls."""
-    if not OMDB_API_KEYS:
-        return None, None
-
-    cache = get_cache()
-    key_idx, api_key = _get_available_key()
-    if api_key is None:
-        return None, None
-    cache.increment_omdb_count(key_idx, 1)
-
-    params = {"t": title, "apikey": api_key, "plot": "full"}
+    params = {"t": title, "plot": "full"}
     if year:
         params["y"] = year
 
-    try:
-        resp = requests.get(OMDB_URL, params=params, timeout=15)
-        if resp.status_code != 200:
-            return None, None
-        data = resp.json()
-        parsed = _parse_response(data)
-        if parsed:
-            imdb_id = data.get("imdbID", "")
-            if imdb_id.startswith("tt"):
-                return imdb_id, parsed
-    except Exception:
-        pass
+    data = _request(params)
+    parsed = _parse_response(data)
+    if parsed:
+        imdb_id = (data or {}).get("imdbID", "")
+        if imdb_id.startswith("tt"):
+            return imdb_id, parsed
     return None, None
 
 
@@ -134,3 +163,22 @@ def _safe_int(s):
         return int(s.replace(",", ""))
     except (TypeError, ValueError):
         return None
+
+
+def _parse_awards(s, kind):
+    """Extract counts from strings like 'Nominated for 1 Oscar. 15 wins & 62 nominations total'."""
+    if not s or s == "N/A":
+        return None
+    import re
+    total = 0
+    for m in re.finditer(r"(\d+)\s+" + kind, s, re.IGNORECASE):
+        total += int(m.group(1))
+    return total if total > 0 else None
+
+
+def _parse_money(s):
+    """'$461,172,890' -> 461172890"""
+    if not s or s == "N/A":
+        return None
+    digits = "".join(c for c in s if c.isdigit())
+    return int(digits) if digits else None

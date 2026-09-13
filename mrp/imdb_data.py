@@ -1,4 +1,5 @@
 """Download, load, and query the IMDb non-commercial datasets."""
+from datetime import datetime
 import pandas as pd
 import requests
 from tqdm import tqdm
@@ -18,14 +19,25 @@ class IMDbData:
 
     # ── Download ───────────────────────────────────────────────────────────
 
-    def download(self):
-        """Download any missing IMDb TSV gzips."""
+    def download(self, force=False):
+        """
+        Download IMDb TSV gzips that are missing OR outdated.
+
+        IMDb updates these files daily. For existing files we send a HEAD
+        request and compare the remote Last-Modified date with the local
+        file's modification time — re-downloading only when the remote
+        file is newer (or on force=True).
+        """
         IMDB_DIR.mkdir(parents=True, exist_ok=True)
         for name, url in IMDB_DATASETS.items():
             filepath = IMDB_DIR / f"{name}.tsv.gz"
-            if filepath.exists():
-                print(f"  ✓ {name} (already present)")
-                continue
+
+            if filepath.exists() and not force:
+                if not self._remote_is_newer(url, filepath):
+                    print(f"  ✓ {name} (up to date)")
+                    continue
+                print(f"  ↻ {name} (newer version available)")
+
             print(f"  ↓ Downloading {name} …")
             resp = requests.get(url, stream=True)
             resp.raise_for_status()
@@ -37,6 +49,22 @@ class IMDbData:
                     f.write(chunk)
                     bar.update(len(chunk))
             print(f"  ✓ {name} done")
+
+    @staticmethod
+    def _remote_is_newer(url, filepath):
+        """True if the remote file's Last-Modified is newer than the local mtime."""
+        import requests as _r
+        from email.utils import parsedate_to_datetime
+        try:
+            head = _r.head(url, timeout=15)
+            last_modified = head.headers.get("Last-Modified")
+            if not last_modified:
+                return False  # can't tell → keep local
+            remote_dt = parsedate_to_datetime(last_modified)
+            local_dt = datetime.fromtimestamp(filepath.stat().st_mtime)
+            return remote_dt.timestamp() > local_dt.timestamp()
+        except Exception:
+            return False  # network hiccup → keep local
 
     # ── Load ───────────────────────────────────────────────────────────────
 

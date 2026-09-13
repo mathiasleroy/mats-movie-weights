@@ -27,7 +27,6 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 # ── OMDb ───────────────────────────────────────────────────────────────────
 OMDB_API_KEYS = [k.strip() for k in os.getenv("OMDB_API_KEYS", "").split(",") if k.strip()]
 OMDB_URL = "https://www.omdbapi.com/"
-OMDB_DAILY_LIMIT = 1000
 
 # ── IMDb non-commercial datasets ───────────────────────────────────────────
 IMDB_DATASETS = {

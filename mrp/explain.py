@@ -22,17 +22,26 @@ _LABELS = {
     "imdb_rating": "IMDb rating",
     "log_votes": "Popularity (votes)",
     "runtime": "Runtime",
-    "num_genres": "# genres",
-    "num_directors": "# directors",
-    "num_cast": "# cast size",
+    "dir_te": "Director (your history)",
+    "cast_te": "Cast (your history)",
+    "cast_te_max": "Best actor (your history)",
+    "cast_te_min": "Worst actor (your history)",
+    "writer_te": "Writers (your history)",
+    "writer_te_max": "Best writer (your history)",
+    "writer_te_min": "Worst writer (your history)",
+    "metascore": "Metascore",
+    "log_box_office": "Box office",
+    "log_awards_wins": "Award wins",
+    "log_awards_noms": "Award nominations",
 }
 
 _GROUPS = [
     ("emb__", "Plot vibe"),
     ("genre__", "Genres"),
-    ("dir__", "Director"),
-    ("actor__", "Cast"),
     ("type__", "Title type"),
+    ("rated__", "Certificate"),
+    ("country__", "Countries"),
+    ("lang__", "Languages"),
 ]
 
 
@@ -158,8 +167,8 @@ def format_explanation(exp):
     lines.append(f"Final Prediction: {pred:.2f}{rng}")
     if not exp["plot_available"]:
         lines.append("⚠ No plot text found — prediction based on metadata only.")
-    lines.append("\n--- FACTOR BREAKDOWN ---")
-    for f in exp["factors"][:12]:
+    lines.append("\n--- 24 FACTOR BREAKDOWN ---")
+    for f in exp["factors"][:24]:
         val = f" ({f['value']:g})" if f.get("value") is not None else ""
         lines.append(f"  {f['contribution']:+.3f} pts  |  {f['name']}{val}")
         # show top individual members of grouped factors

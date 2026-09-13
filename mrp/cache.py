@@ -2,7 +2,7 @@
 import sqlite3
 import json
 import numpy as np
-from datetime import datetime, date
+from datetime import datetime
 from contextlib import contextmanager
 from mrp.config import CACHE_DB
 
@@ -40,28 +40,27 @@ class Cache:
                 ON movie_cache(status)
             """)
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS omdb_usage (
-                    date      TEXT,
-                    key_index TEXT,
-                    count     INTEGER DEFAULT 0,
-                    PRIMARY KEY (date, key_index)
+                CREATE TABLE IF NOT EXISTS settings (
+                    key   TEXT PRIMARY KEY,
+                    value TEXT
                 )
             """)
 
-                
+
     # ── Movie data ─────────────────────────────────────────────────────────
 
     def get(self, imdb_id):
         """Return cached feature dict (with embedding as np.ndarray) or None."""
         with self._conn() as conn:
             row = conn.execute(
-                "SELECT data, embedding, status FROM movie_cache WHERE imdb_id = ?",
+                "SELECT data, embedding, status, fetched_at FROM movie_cache WHERE imdb_id = ?",
                 (imdb_id,),
             ).fetchone()
         if row is None:
             return None
         data = json.loads(row["data"])
         data["status"] = row["status"]
+        data["fetched_at"] = row["fetched_at"]
         if row["embedding"]:
             data["embedding"] = np.frombuffer(row["embedding"], dtype=np.float32)
         else:
@@ -115,33 +114,21 @@ class Cache:
         with self._conn() as conn:
             conn.execute("DELETE FROM movie_cache WHERE imdb_id = ?", (imdb_id,))
 
-    # ── OMDb usage tracking ────────────────────────────────────────────────
+    # ── Settings (small key-value store, e.g. active OMDb key index) ───────
 
-    def get_omdb_count_today(self, key_index=0):
-        today = date.today().isoformat()
-        key_name = f"key_{key_index}"
+    def get_setting(self, key):
         with self._conn() as conn:
             row = conn.execute(
-                "SELECT count FROM omdb_usage WHERE date = ? AND key_index = ?", 
-                (today, key_name)
+                "SELECT value FROM settings WHERE key = ?", (key,)
             ).fetchone()
-            return row["count"] if row else 0
+            return row["value"] if row else None
 
-    def increment_omdb_count(self, key_index=0, amount=1):
-        today = date.today().isoformat()
-        key_name = f"key_{key_index}"
+    def set_setting(self, key, value):
         with self._conn() as conn:
-            # Try to update first (avoids ON CONFLICT schema issues)
-            cur = conn.execute(
-                "UPDATE omdb_usage SET count = count + ? WHERE date = ? AND key_index = ?",
-                (amount, today, key_name)
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                (key, str(value))
             )
-            # If no row was updated, insert it
-            if cur.rowcount == 0:
-                conn.execute(
-                    "INSERT INTO omdb_usage (date, key_index, count) VALUES (?, ?, ?)",
-                    (today, key_name, amount)
-                )
 
     def get_plot_count(self):
         """Count how many cached movies actually have plot text."""

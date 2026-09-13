@@ -11,11 +11,15 @@ import pandas as pd
 from collections import Counter
 from sklearn.decomposition import PCA
 from mrp.config import (
-    TOP_N_DIRECTORS,
-    TOP_N_ACTORS,
     PCA_COMPONENTS,
     EMBEDDING_DIM,
 )
+
+# smoothing strength for target encoding (higher = more shrink to global mean)
+TE_SMOOTHING = 3
+TOP_N_COUNTRIES = 10
+TOP_N_LANGUAGES = 8
+TOP_N_RATED = 8
 
 
 class FeatureBuilder:
@@ -24,15 +28,27 @@ class FeatureBuilder:
     def __init__(self):
         self.genres = []
         self.title_types = []
-        self.top_directors = []
-        self.top_actors = []
+        self.dir_te = {}        # director -> smoothed personal avg rating
+        self.cast_te = {}       # actor -> smoothed personal avg rating
+        self.writer_te = {}     # writer -> smoothed personal avg rating
+        self.countries = []     # top-N country names
+        self.languages = []     # top-N language names
+        self.rated = []         # rating certificates (R, PG-13, ...)
+        self.global_mean = 6.25
         self.pca = None
         self.feature_names_ = []
 
     # ── Fit ────────────────────────────────────────────────────────────────
 
-    def fit(self, features_list):
-        """Learn vocabulary + PCA from a list of feature dicts."""
+    def fit(self, features_list, y):
+        """
+        Learn vocabulary + PCA + target encodings from training data.
+
+        Target encoding replaces the old one-hot director/actor flags
+        (which LightGBM almost never split on) with each person's
+        smoothed personal average rating:
+            score(p) = (sum(ratings of p's movies) + K * global_mean) / (n_p + K)
+        """
         # genres
         genre_set = set()
         for f in features_list:
@@ -47,19 +63,36 @@ class FeatureBuilder:
                 type_set.add(t)
         self.title_types = sorted(type_set)
 
-        # top-N directors by frequency
-        dir_counts = Counter()
-        for f in features_list:
-            for d in f.get("directors", []):
-                dir_counts[d] += 1
-        self.top_directors = [d for d, _ in dir_counts.most_common(TOP_N_DIRECTORS)]
+        # target encodings for directors, cast & writers
+        self.global_mean = float(np.mean(y))
+        k = TE_SMOOTHING
+        sums = {"dir": {}, "cast": {}, "writer": {}}
+        ns = {"dir": Counter(), "cast": Counter(), "writer": Counter()}
+        keys = {"dir": "directors", "cast": "cast", "writer": "writers"}
+        for f, r in zip(features_list, y):
+            for grp, key in keys.items():
+                for p in f.get(key, []) or []:
+                    sums[grp][p] = sums[grp].get(p, 0.0) + r
+                    ns[grp][p] += 1
+        def _te(grp):
+            return {p: (sums[grp][p] + k * self.global_mean) / (ns[grp][p] + k)
+                    for p in ns[grp]}
+        self.dir_te = _te("dir")
+        self.cast_te = _te("cast")
+        self.writer_te = _te("writer")
 
-        # top-N actors by frequency
-        act_counts = Counter()
+        # top-N vocabularies for categorical OMDb fields
+        country_counts, lang_counts, rated_counts = Counter(), Counter(), Counter()
         for f in features_list:
-            for a in f.get("cast", []):
-                act_counts[a] += 1
-        self.top_actors = [a for a, _ in act_counts.most_common(TOP_N_ACTORS)]
+            for c in f.get("countries", []) or []:
+                country_counts[c] += 1
+            for l in f.get("languages", []) or []:
+                lang_counts[l] += 1
+            if f.get("rated"):
+                rated_counts[f["rated"]] += 1
+        self.countries = [c for c, _ in country_counts.most_common(TOP_N_COUNTRIES)]
+        self.languages = [l for l, _ in lang_counts.most_common(TOP_N_LANGUAGES)]
+        self.rated = [r for r, _ in rated_counts.most_common(TOP_N_RATED)]
 
         # PCA on embeddings
         emb_matrix = np.array(
@@ -113,9 +146,6 @@ class FeatureBuilder:
         vec["runtime"] = f.get("runtime") if f.get("runtime") is not None else np.nan
         ## optional: keep year as feature? 
         # vec["year"] = f.get("year") if f.get("year") is not None else np.nan
-        vec["num_genres"] = len(f.get("genres", []))
-        vec["num_directors"] = len(f.get("directors", []))
-        vec["num_cast"] = len(f.get("cast", []))
 
         # ── genre flags ────────────────────────────────────────────────────
         movie_genres = set(f.get("genres", []))
@@ -126,15 +156,36 @@ class FeatureBuilder:
         for t in self.title_types:
             vec[f"type__{t}"] = 1.0 if f.get("title_type") == t else 0.0
 
-        # ── director flags ─────────────────────────────────────────────────
-        movie_dirs = set(f.get("directors", []))
-        for d in self.top_directors:
-            vec[f"dir__{d}"] = 1.0 if d in movie_dirs else 0.0
+        # ── director/cast/writer target encodings ──────────────────────────
+        gm = self.global_mean
+        dirs = [self.dir_te.get(d, gm) for d in f.get("directors", [])]
+        vec["dir_te"] = float(np.mean(dirs)) if dirs else gm
+        cast_scores = [self.cast_te.get(a, gm) for a in f.get("cast", [])]
+        vec["cast_te"] = float(np.mean(cast_scores)) if cast_scores else gm
+        vec["cast_te_max"] = float(max(cast_scores, default=gm))
+        vec["cast_te_min"] = float(min(cast_scores, default=gm))
+        writer_scores = [self.writer_te.get(w, gm) for w in f.get("writers", [])]
+        vec["writer_te"] = float(np.mean(writer_scores)) if writer_scores else gm
+        vec["writer_te_max"] = float(max(writer_scores, default=gm))
+        vec["writer_te_min"] = float(min(writer_scores, default=gm))
 
-        # ── actor flags ────────────────────────────────────────────────────
-        movie_cast = set(f.get("cast", []))
-        for a in self.top_actors:
-            vec[f"actor__{a}"] = 1.0 if a in movie_cast else 0.0
+        # ── OMDb enrichment ────────────────────────────────────────────────
+        ms = f.get("metascore")
+        vec["metascore"] = float(ms) if ms is not None else np.nan
+        bo = f.get("box_office")
+        vec["log_box_office"] = float(np.log1p(bo)) if bo else np.nan
+        aw = f.get("awards_wins")
+        vec["log_awards_wins"] = float(np.log1p(aw)) if aw else 0.0
+        an = f.get("awards_nominations")
+        vec["log_awards_noms"] = float(np.log1p(an)) if an else 0.0
+        for r in self.rated:
+            vec[f"rated__{r}"] = 1.0 if f.get("rated") == r else 0.0
+        movie_countries = set(f.get("countries", []) or [])
+        for c in self.countries:
+            vec[f"country__{c}"] = 1.0 if c in movie_countries else 0.0
+        movie_langs = set(f.get("languages", []) or [])
+        for l in self.languages:
+            vec[f"lang__{l}"] = 1.0 if l in movie_langs else 0.0
 
         # ── plot embedding (PCA-reduced) ───────────────────────────────────
         emb = f.get("embedding")
@@ -156,8 +207,13 @@ class FeatureBuilder:
                 {
                     "genres": self.genres,
                     "title_types": self.title_types,
-                    "top_directors": self.top_directors,
-                    "top_actors": self.top_actors,
+                    "dir_te": self.dir_te,
+                    "cast_te": self.cast_te,
+                    "writer_te": self.writer_te,
+                    "countries": self.countries,
+                    "languages": self.languages,
+                    "rated": self.rated,
+                    "global_mean": self.global_mean,
                     "pca": self.pca,
                     "feature_names_": self.feature_names_,
                 },
@@ -171,8 +227,13 @@ class FeatureBuilder:
         obj = cls()
         obj.genres = d["genres"]
         obj.title_types = d["title_types"]
-        obj.top_directors = d["top_directors"]
-        obj.top_actors = d["top_actors"]
+        obj.dir_te = d.get("dir_te", {})
+        obj.cast_te = d.get("cast_te", {})
+        obj.writer_te = d.get("writer_te", {})
+        obj.countries = d.get("countries", [])
+        obj.languages = d.get("languages", [])
+        obj.rated = d.get("rated", [])
+        obj.global_mean = d.get("global_mean", 6.25)
         obj.pca = d["pca"]
         obj.feature_names_ = d["feature_names_"]
         return obj
