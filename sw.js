@@ -1,6 +1,6 @@
 // Service worker: caches the app shell so the PWA is installable
 // and opens instantly (even offline) when launched from the share sheet.
-const CACHE_NAME = 'movie-predictor-v1';
+const CACHE_NAME = 'movie-predictor-v2';
 const SHELL_ASSETS = [
   './',
   './index.html',

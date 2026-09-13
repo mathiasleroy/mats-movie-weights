@@ -322,6 +322,244 @@
       font-size: 11px;
       text-align: center;
     }
+
+    /* ---------- Tabs ---------- */
+    .tabs {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 4px;
+      margin: 12px 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-radius: 9px;
+      padding: 9px 0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #111;
+    }
+
+    .view[hidden] {
+      display: none !important;
+    }
+
+    .view {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ---------- Trending controls ---------- */
+    .trending-controls {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card);
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .control-row label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      background: #181818;
+      border-radius: 9px;
+      padding: 3px;
+    }
+
+    .segmented button {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      border-radius: 7px;
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segmented button.active {
+      background: var(--accent);
+      color: #111;
+    }
+
+    .topn-select {
+      background: #181818;
+      color: var(--text);
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .fetch-btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .fetch-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    /* ---------- Trending list ---------- */
+    #tStatus {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+      padding: 14px 0;
+    }
+
+    #tStatus.error {
+      color: var(--neg);
+    }
+
+    #tList {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .t-hint {
+      width: 100%;
+      max-width: 480px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+      padding: 12px 4px 0;
+    }
+
+    .t-hint b {
+      color: var(--text);
+    }
+
+    .t-hint.hidden {
+      display: none;
+    }
+
+    .trow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid #2c2c2c;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .trow .rank {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: bold;
+      min-width: 20px;
+      text-align: right;
+    }
+
+    .trow .tmain {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .trow .tname {
+      font-size: 14px;
+      color: var(--text);
+      text-decoration: none;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trow .tname:hover {
+      color: var(--accent);
+    }
+
+    .trow .tid {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .score {
+      min-width: 62px;
+      text-align: right;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--accent);
+    }
+
+    .score.pending {
+      color: var(--muted);
+      font-weight: 400;
+      font-size: 14px;
+    }
+
+    /* Small inline spinner shown in a score cell while its /predict is in flight */
+    .score-spin {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #333;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      vertical-align: middle;
+    }
+
+    .score.err {
+      color: var(--neg);
+      font-weight: 400;
+      font-size: 12px;
+    }
   </style>
 </head>
 
@@ -332,27 +570,68 @@
     <!-- <p>Your personal predicted IMDb rating</p> -->
   </header>
 
-  <div class="input-row" id="inputRow">
-    <input id="urlInput" type="text" placeholder="Paste an IMDb link or tt-ID or share via other app…"
-      autocomplete="off" inputmode="url">
-    <button id="goBtn">Go</button>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabPredictor" data-view="predictor">Predictor</button>
+    <button class="tab-btn" id="tabTrending" data-view="trending">🔥 Trending</button>
   </div>
-  <!-- <div class="hint">Tip: in any app, tap <b>Share → Movie Predictor</b> to skip typing.</div> -->
 
-  <div id="status"></div>
+  <!-- ============ Predictor view (default, unchanged behavior) ============ -->
+  <div class="view" id="viewPredictor">
 
-  <div id="card">
-    <div class="movie-title" id="cTitle"></div>
-    <div class="movie-meta" id="cMeta"></div>
-    <div class="genres" id="cGenres"></div>
-    <div class="big-rating"><span class="num" id="cRating"></span><span class="den">/ 10</span></div>
-    <div class="public-rating" id="cPublic"></div>
-    <div class="range-note" id="cRange" style="display:none;"></div>
-    <div class="warn-note" id="cWarn" style="display:none;">⚠ No plot text found — metadata only.</div>
-    <div class="section-title">Why this rating?</div>
-    <div id="cFactors"></div>
-    <a class="imdb-link" id="cLink" target="_blank" rel="noopener">Open on IMDb ↗</a>
-  </div>
+    <div class="input-row" id="inputRow">
+      <input id="urlInput" type="text" placeholder="Paste an IMDb link or tt-ID or share via other app…"
+        autocomplete="off" inputmode="url">
+      <button id="goBtn">Go</button>
+    </div>
+    <!-- <div class="hint">Tip: in any app, tap <b>Share → Movie Predictor</b> to skip typing.</div> -->
+
+    <div id="status"></div>
+
+    <div id="card">
+      <div class="movie-title" id="cTitle"></div>
+      <div class="movie-meta" id="cMeta"></div>
+      <div class="genres" id="cGenres"></div>
+      <div class="big-rating"><span class="num" id="cRating"></span><span class="den">/ 10</span></div>
+      <div class="public-rating" id="cPublic"></div>
+      <div class="range-note" id="cRange" style="display:none;"></div>
+      <div class="warn-note" id="cWarn" style="display:none;">⚠ No plot text found — metadata only.</div>
+      <div class="section-title">Why this rating?</div>
+      <div id="cFactors"></div>
+      <a class="imdb-link" id="cLink" target="_blank" rel="noopener">Open on IMDb ↗</a>
+    </div>
+
+  </div><!-- /viewPredictor -->
+
+  <!-- ============ Trending view ============ -->
+  <div class="view" id="viewTrending" hidden>
+
+    <div class="trending-controls">
+      <div class="control-row">
+        <label>Chart</label>
+        <div class="segmented" id="chartSeg">
+          <button type="button" class="active" data-chart="movies">Movies</button>
+          <button type="button" data-chart="series">Series</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <label for="topN">How many</label>
+        <select class="topn-select" id="topN">
+          <option value="5">Top 5</option>
+          <option value="10" selected>Top 10</option>
+          <option value="15">Top 15</option>
+          <option value="20">Top 20</option>
+          <option value="25">Top 25</option>
+        </select>
+      </div>
+      <button class="fetch-btn" id="fetchBtn" disabled>Load list</button>
+    </div>
+
+    <div id="tStatus"></div>
+    <div id="tList"></div>
+    <div class="t-hint" id="tHint">Pick how many, tap <b>Load list</b> to fetch the
+      current IMDb chart, then <b>Fetch scores</b> to predict each one.</div>
+
+  </div><!-- /viewTrending -->
 
   <!-- <footer> · Mat's Movie Predictor · </footer> -->
 
@@ -612,6 +891,340 @@
       return null;
     }
 
+    // ======================================================================
+    // TRENDING TAB
+    // ----------------------------------------------------------------------
+    // Cost-safety rules:
+    //  1) Nothing here runs on page load. The IMDb chart is scraped only when
+    //     the user actually opens the Trending tab.
+    //  2) The (expensive) /predict API is NEVER called during a scrape — the
+    //     user must press "Fetch scores".
+    //  3) Fetched scores are cached per (chart, N) in localStorage for TTL.
+    // ======================================================================
+
+    // Data source: the open-source "IMDb Popular" Stremio addon. It exposes
+    // IMDb's trending/popular/top-rated catalogs as plain JSON (no scraping,
+    // no API key, no CORS proxy — Stremio addons are CORS-enabled by design).
+    // Each catalog returns { metas: [{ id: "tt...", name, year, imdbRating … }] }.
+    const STREMIO_BASE = 'https://imdb-popular-stremio.vercel.app';
+    // Each chart maps to a catalog type ("movie" | "series") + catalog id.
+    // URL shape: {base}/catalog/{type}/{id}.json
+    const CHARTS = {
+      movies: { type: 'movie', path: 'imdb-trending-movies', label: 'IMDb Trending Movies' },
+      series: { type: 'series', path: 'imdb-trending-series', label: 'IMDb Trending Series' },
+    };
+    const TRENDING_TTL = 10 * 60 * 1000; // 10 minutes
+    const TRENDING_KEY_PREFIX = 'trending:';
+
+    const tStatusEl = document.getElementById('tStatus');
+    const tListEl = document.getElementById('tList');
+    const tHintEl = document.getElementById('tHint');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const topNEl = document.getElementById('topN');
+    const chartSegEl = document.getElementById('chartSeg');
+
+    // Trending state — never triggers network on its own.
+    let tState = {
+      chart: 'movies',
+      topN: 10,
+      items: [],      // [{ rank, id, url, title, year, imdbRating, rating|null, error|null }]
+      loaded: false,  // a list is currently displayed?
+      scoring: false, // a sequential predict run is in progress
+    };
+
+    // ---------- Fetch the catalog -> ordered [{id, title, year, imdbRating}] ----------
+    // Stremio catalog JSON: { metas: [{ id:"tt...", name, year, imdbRating … }] }.
+    async function getTopItems(chartKey, limit = 10) {
+      const chart = CHARTS[chartKey];
+      const url = `${STREMIO_BASE}/catalog/${chart.type}/${chart.path}.json`;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      let data;
+      try {
+        const resp = await fetch(url, { signal: ctrl.signal });
+        if (!resp.ok) throw new Error(`catalog HTTP ${resp.status}`);
+        data = await resp.json();
+      } finally {
+        clearTimeout(timer);
+      }
+
+      const metas = (data && data.metas) || [];
+      const seen = new Set();
+      const items = [];
+      for (const m of metas) {
+        const id = String(m.id || '').match(/^tt\d+$/i)?.[0];
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        items.push({
+          id,
+          title: m.name || id,
+          year: m.year || null,
+          imdbRating: (m.imdbRating != null && m.imdbRating !== '') ? Number(m.imdbRating) : null,
+        });
+        if (items.length >= limit) break;
+      }
+      return items;
+    }
+
+    // ---------- Trending UI helpers ----------
+    function tSetStatus(msg, isError = false) {
+      tStatusEl.className = isError ? 'error' : '';
+      tStatusEl.innerHTML = isError
+        ? msg
+        : `<div class="spinner"></div><div>${msg}</div>`;
+    }
+    function tClearStatus() { tStatusEl.innerHTML = ''; tStatusEl.className = ''; }
+
+    function trendingCacheKey() { return `${TRENDING_KEY_PREFIX}${tState.chart}:${tState.topN}`; }
+
+    function saveTrendingCache() {
+      try {
+        localStorage.setItem(trendingCacheKey(), JSON.stringify({
+          ts: Date.now(),
+          items: tState.items.map(i => ({ id: i.id, rating: i.rating, error: i.error })),
+        }));
+      } catch (_) { }
+    }
+    function loadTrendingCache() {
+      try {
+        const s = JSON.parse(localStorage.getItem(trendingCacheKey()));
+        if (s && s.items && Date.now() - s.ts < TRENDING_TTL) return s.items;
+      } catch (_) { }
+      return null;
+    }
+
+    // Render the list from tState.items. Rows without a rating show a dash.
+    function renderTrendingList() {
+      if (!tState.items.length) {
+        tListEl.innerHTML = '';
+        return;
+      }
+      tListEl.innerHTML = tState.items.map((it, idx) => {
+        const scoreCls = it.error ? 'score err' : (it.rating == null ? 'score pending' : 'score');
+        const scoreTxt = it.error ? 'n/a'
+          : (it.rating == null ? '—' : Number(it.rating).toFixed(1));
+        // Show "2024 · 8/10" (year · current IMDb rating) instead of the tt-ID.
+        const imdb = it.imdbRating != null ? `${it.imdbRating}/10` : null;
+        const meta = [it.year, imdb].filter(Boolean).join(' · ');
+        return `
+          <div class="trow" data-idx="${idx}">
+            <div class="rank">${it.rank}</div>
+            <div class="tmain">
+              <a class="tname" href="${it.url}" target="_blank" rel="noopener">${it.title || it.id}</a>
+              <div class="tid">${meta}</div>
+            </div>
+            <div class="${scoreCls}" data-score-for="${idx}">${scoreTxt}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // Show a small spinner in a row's score cell while its /predict is in flight.
+    function setRowLoading(idx) {
+      const el = tListEl.querySelector(`[data-score-for="${idx}"]`);
+      if (!el) return;
+      el.className = 'score pending';
+      el.removeAttribute('title');
+      el.innerHTML = '<span class="score-spin"></span>';
+    }
+
+    function setRowScore(idx, ratingOrNull, errorOrNull) {
+      const el = tListEl.querySelector(`[data-score-for="${idx}"]`);
+      if (!el) return;
+      if (errorOrNull) {
+        el.className = 'score err';
+        el.textContent = 'n/a';
+        el.title = errorOrNull;
+      } else {
+        el.className = 'score';
+        el.textContent = Number(ratingOrNull).toFixed(1);
+        el.removeAttribute('title');
+      }
+    }
+
+    // The single button is two-phase: first it loads the chart list (cheap,
+    // public catalog), then it scores the loaded rows (the only /predict call).
+    function updateButtonState() {
+      if (tState.scoring) {
+        fetchBtn.disabled = true;
+        fetchBtn.textContent = 'Scoring…';
+      } else if (!tState.loaded) {
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = 'Load list';
+      } else {
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = 'Fetch scores';
+      }
+    }
+
+    // Returns the trending tab to a "nothing loaded yet" state. Changing N
+    // does NOT auto-fetch — the user must press the button.
+    function resetTrendingSelection() {
+      tState.loaded = false;
+      tState.items = [];
+      tListEl.innerHTML = '';
+      tHintEl.classList.remove('hidden');
+      tClearStatus();
+      updateButtonState();
+    }
+
+    // ---------- Load list + render (NO predict calls) ----------
+    async function loadTrendingList() {
+      tState.loaded = false;
+      tState.items = [];
+      fetchBtn.disabled = true;
+      tListEl.innerHTML = '';
+
+      // If we have a fresh cached score set for this catalog/N, reuse it.
+      const cached = loadTrendingCache();
+
+      tSetStatus(`Loading ${CHARTS[tState.chart].label}…`);
+      let items;
+      try {
+        items = await getTopItems(tState.chart, tState.topN);
+      } catch (err) {
+        console.error('[trending] catalog fetch failed:', err);
+        tSetStatus('Could not load the IMDb chart. Check your connection ' +
+          'and try again shortly.', true);
+        updateButtonState();
+        return;
+      }
+
+      if (!items.length) {
+        tSetStatus('No titles found in the chart response.', true);
+        updateButtonState();
+        return;
+      }
+
+      // Rows start unscored (dash). No /predict calls happen here.
+      tState.items = items.map((m, i) => ({
+        rank: i + 1,
+        id: m.id,
+        url: `https://www.imdb.com/title/${m.id}/`,
+        title: m.title,
+        year: m.year,
+        imdbRating: m.imdbRating,
+        rating: null,
+        error: null,
+      }));
+
+      // Merge in any cached scores so returning users see numbers for free.
+      if (cached) {
+        const byId = new Map(cached.map(c => [c.id, c]));
+        for (const it of tState.items) {
+          const c = byId.get(it.id);
+          if (c) { it.rating = c.rating ?? null; it.error = c.error ?? null; }
+        }
+        tClearStatus();
+      } else {
+        tClearStatus();
+      }
+
+      tState.loaded = true;
+      tHintEl.classList.add('hidden');
+      renderTrendingList();
+      updateButtonState();
+    }
+
+    // ---------- Sequential scoring: the ONLY place /predict is called ----------
+    async function fetchTrendingScores() {
+      if (tState.scoring || !tState.items.length) return;
+      tState.scoring = true;
+      updateButtonState();
+
+      // Only rows that don't already have a rating/error need a /predict call.
+      const pendingIdx = [];
+      tState.items.forEach((it, i) => {
+        if (it.rating == null && !it.error) pendingIdx.push(i);
+      });
+
+      // Guard rail: never re-fire /predict for rows already scored.
+      if (!pendingIdx.length) {
+        tClearStatus();
+        tState.scoring = false;
+        updateButtonState();
+        return;
+      }
+
+      tSetStatus(`Scoring 0/${pendingIdx.length}…`);
+
+      let done = 0;
+      for (const i of pendingIdx) {
+        const it = tState.items[i];
+        done++;
+        tSetStatus(`Scoring ${done}/${pendingIdx.length}… <small>(${it.title || it.id})</small>`);
+        setRowLoading(i); // show a spinner in this row's score cell
+        try {
+          const res = await fetch(
+            `${API_BASE}/predict?imdb_id=${encodeURIComponent(it.id)}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (data && data.error) throw new Error(data.error);
+          it.rating = data.predicted_rating;
+          it.error = null;
+          setRowScore(i, it.rating, null); // replace spinner with the number
+        } catch (err) {
+          console.warn(`[trending] predict failed for ${it.id}:`, err);
+          it.rating = null;
+          it.error = String(err.message || err);
+          setRowScore(i, null, it.error);
+        }
+        saveTrendingCache(); // persist after each row so progress survives a reload
+      }
+
+      tClearStatus();
+      tState.scoring = false;
+      updateButtonState();
+    }
+
+    // ---------- Tab switching ----------
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const views = {
+      predictor: document.getElementById('viewPredictor'),
+      trending: document.getElementById('viewTrending'),
+    };
+
+    function showView(name) {
+      if (!views[name]) return;
+      for (const [key, el] of Object.entries(views)) el.hidden = key !== name;
+      tabButtons.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+      // Only swap the hash — keep any ?query (e.g. share params) intact.
+      try { history.replaceState(null, '', `${location.pathname}${location.search}#${name}`); } catch (_) { }
+      // NOTE: switching tabs performs NO network work by design.
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => showView(btn.dataset.view));
+    });
+
+    // ---------- Chart (Movies / Series) control ----------
+    // Switching chart only updates state and clears the list. It does NOT load
+    // and does NOT call /predict — the user presses the button.
+    chartSegEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-chart]');
+      if (!btn || btn.classList.contains('active')) return;
+      chartSegEl.querySelectorAll('button').forEach(b =>
+        b.classList.toggle('active', b === btn));
+      tState.chart = btn.dataset.chart;
+      resetTrendingSelection();
+    });
+
+    // ---------- Top-N control ----------
+    // Changing N only updates state and clears the current list. It does NOT
+    // load and does NOT call /predict — the user presses the button.
+    topNEl.addEventListener('change', () => {
+      tState.topN = parseInt(topNEl.value, 10) || 10;
+      resetTrendingSelection();
+    });
+
+    // Two-phase button: "Load list" (scrape only) then "Fetch scores" (/predict).
+    fetchBtn.addEventListener('click', () => {
+      if (!tState.loaded) loadTrendingList();
+      else fetchTrendingScores();
+    });
+
+    // Initial button label — no network here.
+    updateButtonState();
+
     // ---------- Lifecycle diagnostics ----------
     console.log('[predictor] script start:', location.href);
     window.addEventListener('beforeunload', () =>
@@ -639,6 +1252,9 @@
     document.getElementById('goBtn').addEventListener('click', handleInput);
     inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleInput(); });
 
+    // Flag so a share-target launch always wins over any leftover #hash.
+    let launchedFromShare = false;
+
     window.addEventListener('load', () => {
       console.log('[predictor] load event fired');
       // Register service worker for installability/offline shell
@@ -655,7 +1271,9 @@
         extractImdbId(params.get('id')); // set by handleInput, survives reloads
 
       if (sharedId) {
-        // document.getElementById('inputRow').style.display = 'none';
+        // A shared link is always about predicting ONE title → show Predictor.
+        launchedFromShare = true;
+        showView('predictor');
         fetchPrediction(sharedId);
         return;
       }
@@ -671,6 +1289,14 @@
       // 3) Nothing to show: focus the input
       inputEl.focus();
     });
+
+    // Honor a #trending / #predictor deep link — but never override a share
+    // launch, which must always land on the Predictor view.
+    (function initTabFromHash() {
+      if (launchedFromShare) return;
+      const hash = (location.hash || '').replace('#', '');
+      if (hash === 'trending' || hash === 'predictor') showView(hash);
+    })();
   </script>
 </body>
 
