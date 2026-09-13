@@ -109,7 +109,7 @@
     #status {
       width: 100%;
       max-width: 480px;
-      min-height: 60px;
+      /* min-height: 60px; */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -328,15 +328,16 @@
 <body>
 
   <header>
-    <h1>🎬 Movie Predictor</h1>
-    <p>Your personal predicted IMDb rating</p>
+    <h1>🎬 Mat's Movie Predictor</h1>
+    <!-- <p>Your personal predicted IMDb rating</p> -->
   </header>
 
   <div class="input-row" id="inputRow">
-    <input id="urlInput" type="text" placeholder="Paste an IMDb link or tt-ID…" autocomplete="off" inputmode="url">
+    <input id="urlInput" type="text" placeholder="Paste an IMDb link or tt-ID or share via other app…"
+      autocomplete="off" inputmode="url">
     <button id="goBtn">Go</button>
   </div>
-  <div class="hint">Tip: in any app, tap <b>Share → Movie Predictor</b> to skip typing.</div>
+  <!-- <div class="hint">Tip: in any app, tap <b>Share → Movie Predictor</b> to skip typing.</div> -->
 
   <div id="status"></div>
 
@@ -353,7 +354,7 @@
     <a class="imdb-link" id="cLink" target="_blank" rel="noopener">Open on IMDb ↗</a>
   </div>
 
-  <footer>Mat's Movie Predictor · powered by onepred API</footer>
+  <!-- <footer> · Mat's Movie Predictor · </footer> -->
 
   <script>
     const API_BASE = 'https://mats-movie-preds-api.onrender.com';
@@ -654,7 +655,7 @@
         extractImdbId(params.get('id')); // set by handleInput, survives reloads
 
       if (sharedId) {
-        document.getElementById('inputRow').style.display = 'none';
+        // document.getElementById('inputRow').style.display = 'none';
         fetchPrediction(sharedId);
         return;
       }
