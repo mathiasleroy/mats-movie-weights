@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Movie Predictor</title>
+  <meta name="theme-color" content="#1f1f1f">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #141414;
+      --card: #1f1f1f;
+      --accent: #f5c518;
+      --text: #eee;
+      --muted: rgba(238, 238, 238, 0.6);
+      --pos: #2ecc71;
+      --neg: #e74c3c;
+      --warn: #e67e22;
+    }
+
+    html,
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      min-height: 100vh;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: max(16px, env(safe-area-inset-top)) 16px 24px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      padding: 12px 0 4px;
+    }
+
+    header h1 {
+      color: var(--accent);
+      font-size: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    /* Input fallback (shown when no shared URL) */
+    .input-row {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      gap: 8px;
+      margin: 16px 0 8px;
+    }
+
+    .input-row input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid #444;
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .input-row input:focus {
+      border-color: var(--accent);
+    }
+
+    .input-row button {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      border-radius: 10px;
+      padding: 0 18px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .hint {
+      width: 100%;
+      max-width: 480px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    /* Status / loading / error */
+    #status {
+      width: 100%;
+      max-width: 480px;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    #status.error {
+      color: var(--neg);
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #333;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Prediction card */
+    #card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card);
+      border: 1px solid var(--accent);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      display: none;
+    }
+
+    #card.show {
+      display: block;
+    }
+
+    .movie-title {
+      color: var(--accent);
+      font-weight: bold;
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    .movie-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .big-rating {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 6px;
+      margin: 16px 0 4px;
+    }
+
+    .big-rating .num {
+      font-size: 52px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .big-rating .den {
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .public-rating {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .range-note {
+      background: #181818;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .range-note b {
+      color: var(--text);
+    }
+
+    .warn-note {
+      color: var(--warn);
+      font-size: 12.5px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .factor {
+      margin-bottom: 10px;
+    }
+
+    .factor-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+
+    .factor-val {
+      font-weight: bold;
+    }
+
+    .factor-bar {
+      background: #333;
+      border-radius: 3px;
+      height: 5px;
+      overflow: hidden;
+    }
+
+    .factor-bar>div {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    .member {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--muted);
+      padding: 1px 0 1px 14px;
+    }
+
+    /* Expandable factor groups (kept visually identical to plain factors) */
+    .factor.expandable>.factor-row {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .factor .toggle {
+      display: inline-block;
+      width: 12px;
+      color: var(--muted);
+      font-size: 10px;
+      transition: transform 0.15s ease;
+    }
+
+    .factor.open .toggle {
+      transform: rotate(90deg);
+    }
+
+    .factor .children {
+      display: none;
+    }
+
+    .factor.open>.children {
+      display: block;
+    }
+
+    .factor.sub {
+      margin: 6px 0 0 14px;
+    }
+
+    .genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      justify-content: center;
+    }
+
+    .genre-chip {
+      background: #2a2a2a;
+      border: 1px solid #3d3d3d;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-size: 12px;
+    }
+
+    .imdb-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      color: var(--accent);
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 24px;
+      color: rgba(238, 238, 238, 0.35);
+      font-size: 11px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>🎬 Movie Predictor</h1>
+    <p>Your personal predicted IMDb rating</p>
+  </header>
+
+  <div class="input-row" id="inputRow">
+    <input id="urlInput" type="text" placeholder="Paste an IMDb link or tt-ID…" autocomplete="off" inputmode="url">
+    <button id="goBtn">Go</button>
+  </div>
+  <div class="hint">Tip: in any app, tap <b>Share → Movie Predictor</b> to skip typing.</div>
+
+  <div id="status"></div>
+
+  <div id="card">
+    <div class="movie-title" id="cTitle"></div>
+    <div class="movie-meta" id="cMeta"></div>
+    <div class="genres" id="cGenres"></div>
+    <div class="big-rating"><span class="num" id="cRating"></span><span class="den">/ 10</span></div>
+    <div class="public-rating" id="cPublic"></div>
+    <div class="range-note" id="cRange" style="display:none;"></div>
+    <div class="warn-note" id="cWarn" style="display:none;">⚠ No plot text found — metadata only.</div>
+    <div class="section-title">Why this rating?</div>
+    <div id="cFactors"></div>
+    <a class="imdb-link" id="cLink" target="_blank" rel="noopener">Open on IMDb ↗</a>
+  </div>
+
+  <footer>Mat's Movie Predictor · powered by onepred API</footer>
+
+  <script>
+    const API_BASE = 'https://mats-movie-preds-api.onrender.com';
+    // const API_BASE = 'http://127.0.0.1:8000';
+
+    const statusEl = document.getElementById('status');
+    const cardEl = document.getElementById('card');
+    const inputEl = document.getElementById('urlInput');
+
+    // ---------- ID extraction ----------
+    function extractImdbId(text) {
+      if (!text) return null;
+      const m = String(text).match(/tt\d{7,10}/i);
+      return m ? m[0] : null;
+    }
+
+    // ---------- Status helpers ----------
+    function showLoading(msg) {
+      cardEl.classList.remove('show');
+      statusEl.className = '';
+      statusEl.innerHTML = `<div class="spinner"></div><div>${msg}</div>`;
+    }
+    function showError(msg) {
+      cardEl.classList.remove('show');
+      statusEl.className = 'error';
+      statusEl.textContent = msg;
+    }
+    function hideStatus() { statusEl.innerHTML = ''; statusEl.className = ''; }
+
+    // ---------- API ----------
+    let fetchInFlight = null; // guard against duplicate concurrent fetches
+
+    async function fetchPrediction(imdbId) {
+      if (fetchInFlight) {
+        console.warn('[predictor] fetch already in flight, ignoring duplicate call for', imdbId);
+        return;
+      }
+      console.log('[predictor] fetchPrediction called for', imdbId);
+      showLoading('Fetching prediction…<br><small>(Render free tier can take ~60s to wake up)</small>');
+      const started = Date.now();
+      const url = `${API_BASE}/predict?imdb_id=${encodeURIComponent(imdbId)}&explain=1`;
+      fetchInFlight = (async () => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            const body = await res.text().catch(() => '<no body>');
+            console.error(`[predictor] HTTP ${res.status} ${res.statusText} for ${url}\nResponse body:`, body);
+            throw new Error(`API returned HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          console.debug('[predictor] API response:', data);
+
+          if (data.error) {
+            // Error generated by the API itself (e.g. unknown ID, model failure)
+            console.error(`[predictor] API error for ${imdbId}:`, data.error);
+            throw new Error(
+              `No prediction for ${imdbId}. It may be too new/obscure for the model, ` +
+              `or the ID doesn't exist. (API said: "${data.error}")`);
+          }
+
+          // If the cold start ate most of the wait, swap the message quickly
+          if (Date.now() - started > 8000) showLoading('Almost there…');
+          renderCard(data);
+        } catch (err) {
+          if (err instanceof TypeError) {
+            // fetch() itself failed: network down, DNS, CORS, or server asleep
+            console.error(`[predictor] Network/request failure for ${url}:`, err);
+            showError('Could not reach the API. Check your connection — ' +
+              'if on Render free tier, the service may be waking up. Try again in a minute.');
+          } else if (!statusEl.classList.contains('error')) {
+            console.error('[predictor] Prediction failed:', err);
+            showError(err.message);
+          }
+        }
+      })();
+      try {
+        await fetchInFlight;
+      } finally {
+        fetchInFlight = null;
+      }
+    }
+
+    // ---------- Rendering ----------
+    // Actor/writer sub-features are merged into single expandable rows
+    const MERGE_DEFS = [
+      {
+        label: 'Actors',
+        match: n => /(actor|cast)/i.test(n),
+        rename: n => n.replace(' (your history)', '')
+          .replace('Best actor', 'Best').replace('Worst actor', 'Worst')
+          .replace('Cast', 'Cast average')
+      },
+      {
+        label: 'Writers',
+        match: n => /writer/i.test(n),
+        rename: n => n.replace(' (your history)', '')
+          .replace('Best writer', 'Best').replace('Worst writer', 'Worst')
+          .replace(/^Writers$/, 'Writers average')
+      }
+    ];
+
+    function factorRow(r, maxAbs) {
+      const c = r.contribution || 0;
+      const pos = c >= 0;
+      const color = pos ? 'var(--pos)' : 'var(--neg)';
+      const pct = Math.min(Math.abs(c) / maxAbs * 100, 100);
+      const valTxt = r.value !== null && r.value !== undefined ? ` (${r.value})` : '';
+      const contrib = `<span class="factor-val" style="color:${color};">${pos ? '+' : ''}${c.toFixed(2)}</span>`;
+
+      const hasChildren = r.children && r.children.length;
+      const toggle = hasChildren ? '<span class="toggle">▶</span> ' : '';
+      const cls = hasChildren ? 'factor expandable' : 'factor';
+
+      const row = `
+          <div class="factor-row">
+            <span>${toggle}${r.name}${valTxt}</span>
+            ${contrib}
+          </div>
+          <div class="factor-bar"><div style="width:${pct}%;background:${color};"></div></div>`;
+
+      // Plain (level 1) row when there is nothing to expand
+      if (!hasChildren) {
+        return `<div class="${cls}">${row}</div>`;
+      }
+
+      // Level 1 group: same look as a plain factor, plus click-to-expand level 2
+      const kids = r.children.map(k => {
+        const kc = k.contribution || 0;
+        const kpos = kc >= 0;
+        const kcolor = kpos ? 'var(--pos)' : 'var(--neg)';
+        const kval = k.value !== null && k.value !== undefined ? ` (${k.value})` : '';
+        const kpct = Math.min(Math.abs(kc) / maxAbs * 100, 100);
+        return `
+          <div class="factor sub">
+            <div class="factor-row">
+              <span>${k.name}${kval}</span>
+              <span class="factor-val" style="color:${kcolor};">${kpos ? '+' : ''}${kc.toFixed(2)}</span>
+            </div>
+            <div class="factor-bar"><div style="width:${kpct}%;background:${kcolor};"></div></div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="${cls}">
+          ${row}
+          <div class="children">${kids}</div>
+        </div>`;
+    }
+
+    // Toggle a group open/closed when its level-1 row is clicked
+    document.getElementById('cFactors').addEventListener('click', (e) => {
+      const head = e.target.closest('.factor.expandable > .factor-row');
+      if (head) head.parentElement.classList.toggle('open');
+    });
+
+    function buildFactorList(exp) {
+      const factors = (exp && exp.factors) ? exp.factors.slice() : [];
+      const maxAbs = Math.max(...factors.map(f => Math.abs(f.contribution || 0)), 0.01);
+      const rows = [];
+      const used = new Set();
+
+      // 1) merged actor/writer rows
+      for (const def of MERGE_DEFS) {
+        const items = factors.filter(f => !used.has(f) && def.match(f.name));
+        items.forEach(f => used.add(f));
+        if (items.length) {
+          rows.push({
+            name: def.label,
+            value: null,
+            contribution: items.reduce((s, f) => s + (f.contribution || 0), 0),
+            children: items
+              .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+              .map(f => ({ name: def.rename(f.name), contribution: f.contribution, value: f.value })),
+          });
+        }
+      }
+
+      // 2) everything else (member groups like Plot vibe/Genres become expandable too)
+      for (const f of factors) {
+        if (used.has(f)) continue;
+        rows.push({
+          name: f.name,
+          value: f.value,
+          contribution: f.contribution,
+          children: (f.members || []).map(m => ({ name: m.name, contribution: m.contribution })),
+        });
+      }
+
+      rows.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+      return rows.map(r => factorRow(r, maxAbs)).join('');
+    }
+
+    function renderCard(data) {
+      hideStatus();
+      const rating = Number(data.predicted_rating).toFixed(1);
+
+      document.getElementById('cTitle').textContent =
+        data.title ? data.title : data.imdb_id;
+      document.getElementById('cMeta').textContent =
+        [data.year, data.directors && data.directors.length ? data.directors.join(', ') : null]
+          .filter(Boolean).join(' · ');
+      document.getElementById('cRating').textContent = rating;
+      document.getElementById('cPublic').textContent =
+        data.imdb_public_rating != null
+          ? `IMDb public rating: ${Number(data.imdb_public_rating).toFixed(1)}/10`
+          : '';
+
+      const exp = data.explanation;
+      const rangeEl = document.getElementById('cRange');
+      if (exp && exp.mae) {
+        rangeEl.style.display = 'block';
+        rangeEl.innerHTML =
+          `Your average: <b>${exp.base.toFixed(2)}</b> · likely range ` +
+          `<b>${(data.predicted_rating - exp.mae).toFixed(1)}–${(data.predicted_rating + exp.mae).toFixed(1)}</b>`;
+      } else {
+        rangeEl.style.display = 'none';
+      }
+
+      document.getElementById('cWarn').style.display =
+        exp && exp.plot_available === false ? 'block' : 'none';
+
+      const factorsEl = document.getElementById('cFactors');
+      if (exp && exp.factors && exp.factors.length) {
+        factorsEl.innerHTML = buildFactorList(exp);
+      } else {
+        factorsEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No explanation available.</div>';
+      }
+
+      const genresEl = document.getElementById('cGenres');
+      genresEl.innerHTML = (data.genres || [])
+        .map(g => `<span class="genre-chip">${g}</span>`).join('');
+
+      document.getElementById('cLink').href =
+        `https://www.imdb.com/title/${data.imdb_id}/`;
+
+      cardEl.classList.add('show');
+      saveResult(data); // persist so a surprise reload can restore this
+    }
+
+    // ---------- Result persistence (survives surprise reloads) ----------
+    const RESULT_KEY = 'lastPrediction';
+    const RESULT_TTL = 10 * 60 * 1000; // 10 minutes
+
+    function saveResult(data) {
+      try {
+        localStorage.setItem(RESULT_KEY,
+          JSON.stringify({ ts: Date.now(), imdbId: data.imdb_id, data }));
+      } catch (_) { }
+    }
+    function loadSavedResult() {
+      try {
+        const s = JSON.parse(localStorage.getItem(RESULT_KEY));
+        if (s && s.data && Date.now() - s.ts < RESULT_TTL) return s;
+      } catch (_) { }
+      return null;
+    }
+
+    // ---------- Lifecycle diagnostics ----------
+    console.log('[predictor] script start:', location.href);
+    window.addEventListener('beforeunload', () =>
+      console.warn('[predictor] page unloading — if you did not navigate away, something reloaded the app'));
+    document.addEventListener('visibilitychange', () =>
+      console.log('[predictor] visibilitychange:', document.visibilityState));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () =>
+        console.warn('[predictor] SW controller changed (service worker took over the page)'));
+    }
+
+    // ---------- Entry points ----------
+    function handleInput() {
+      const id = extractImdbId(inputEl.value.trim());
+      if (!id) {
+        showError('Could not find an IMDb ID (looks like "tt1234567") in that text.');
+        return;
+      }
+      inputEl.value = '';
+      // Keep the ID in the URL so a reload re-triggers the same prediction
+      history.replaceState(null, '', `./index.html?id=${id}`);
+      fetchPrediction(id);
+    }
+
+    document.getElementById('goBtn').addEventListener('click', handleInput);
+    inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleInput(); });
+
+    window.addEventListener('load', () => {
+      console.log('[predictor] load event fired');
+      // Register service worker for installability/offline shell
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => { });
+      }
+
+      // 1) Share Target launch: params arrive as ?title=...&text=...&url=...
+      const params = new URLSearchParams(location.search);
+      const sharedId =
+        extractImdbId(params.get('url')) ||
+        extractImdbId(params.get('text')) ||
+        extractImdbId(params.get('title')) ||
+        extractImdbId(params.get('id')); // set by handleInput, survives reloads
+
+      if (sharedId) {
+        document.getElementById('inputRow').style.display = 'none';
+        fetchPrediction(sharedId);
+        return;
+      }
+
+      // 2) Manual launch: restore a recent result if we have one
+      const saved = loadSavedResult();
+      if (saved) {
+        console.log('[predictor] restoring cached result for', saved.imdbId);
+        renderCard(saved.data);
+        return;
+      }
+
+      // 3) Nothing to show: focus the input
+      inputEl.focus();
+    });
+  </script>
+</body>
+
+</html>
