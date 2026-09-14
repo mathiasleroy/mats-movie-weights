@@ -40,15 +40,11 @@ IMDB_DATASETS = {
 # ── Embeddings ─────────────────────────────────────────────────────────────
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
-# PCA_COMPONENTS = 64
-# PCA_COMPONENTS = 120 # +0.1602
-# PCA_COMPONENTS = 128 # +0.1673
-# PCA_COMPONENTS = 132 # +0.1569
-# PCA_COMPONENTS = 140 # +0.1608
 
-# PCA_COMPONENTS = 126 # +0.1696
-PCA_COMPONENTS = 128 # +0.1701
-# PCA_COMPONENTS = 130 # +0.1684
+# PCA_COMPONENTS = 16 # improvement +0.0766
+PCA_COMPONENTS = 32 # improvement +0.0780
+# PCA_COMPONENTS = 64 # improvement +0.0774
+# PCA_COMPONENTS = 128 # improvement +0.0766
 
 # ── Feature engineering ────────────────────────────────────────────────────
 TOP_N_DIRECTORS = 100

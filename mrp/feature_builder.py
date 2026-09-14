@@ -16,7 +16,7 @@ from mrp.config import (
 )
 
 # smoothing strength for target encoding (higher = more shrink to global mean)
-TE_SMOOTHING = 3
+TE_SMOOTHING = 15
 TOP_N_COUNTRIES = 10
 TOP_N_LANGUAGES = 8
 TOP_N_RATED = 8
@@ -162,12 +162,12 @@ class FeatureBuilder:
         vec["dir_te"] = float(np.mean(dirs)) if dirs else gm
         cast_scores = [self.cast_te.get(a, gm) for a in f.get("cast", [])]
         vec["cast_te"] = float(np.mean(cast_scores)) if cast_scores else gm
-        vec["cast_te_max"] = float(max(cast_scores, default=gm))
-        vec["cast_te_min"] = float(min(cast_scores, default=gm))
+        # vec["cast_te_max"] = float(max(cast_scores, default=gm))
+        # vec["cast_te_min"] = float(min(cast_scores, default=gm))
         writer_scores = [self.writer_te.get(w, gm) for w in f.get("writers", [])]
         vec["writer_te"] = float(np.mean(writer_scores)) if writer_scores else gm
-        vec["writer_te_max"] = float(max(writer_scores, default=gm))
-        vec["writer_te_min"] = float(min(writer_scores, default=gm))
+        # vec["writer_te_max"] = float(max(writer_scores, default=gm))
+        # vec["writer_te_min"] = float(min(writer_scores, default=gm))
 
         # ── OMDb enrichment ────────────────────────────────────────────────
         ms = f.get("metascore")
